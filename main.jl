@@ -8,6 +8,7 @@ using LinearAlgebra
 using Turing
 using StatsFuns
 using FillArrays
+using Optim
 
 
 
@@ -196,9 +197,13 @@ function predict_next_gp(seq, n_pred)
     ft = fft(fseq)
     meanf = MeanConst(real(ft[1])/N)
 
-    for k in Integer(round(length(seq)/2, RoundUp)): length(seq)
-        kern += Periodic(norm(ft[k]/N),1.0,log(N/ (k-1 )))
+    qant = quantile(norm.(ft), 0.5)
+    for k in 1: length(seq)
+        if norm(ft[k]) > qant
+            kern += Periodic(norm(ft[k]/N),1.0,log(N/ (k-1 )))
+        end
     end
+
 
     # Just a very peaky kernel
 
@@ -207,12 +212,10 @@ function predict_next_gp(seq, n_pred)
     x = reshape(Vector{Float64}(0:length(seq)-1), (1,:))
     lik = BernLik()   # Bernoulli likelihood for binary data {0,1}
     gp = GP(x,Vector{Bool}(seq), meanf ,kern,lik)      # Fit the Gaussian process model
-    try
-        optimize!(gp, GradientDescent(), Optim.Options(;iterations=50);kern = true)
-    catch e
-        nothing
-    end
-    x_plot = reshape(Vector{Float64}(0:n_pred+length(seq)-1), (1,:))
+
+    optimize!(gp, Optim.GradientDescent(), Optim.Options(;iterations=100))
+
+    x_plot = reshape(Vector{Float64}(length(seq):n_pred+length(seq)-1), (1,:))
     predict_y(gp, x_plot)[1]
 
 end
@@ -245,11 +248,8 @@ vect = [0,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
 
 
 
-plot(predict_next_gp([],20))
+plot(predict_next_gp(vect,20))
 scatter!(vect)
-
-
-
 
 
 
