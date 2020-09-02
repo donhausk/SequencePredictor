@@ -91,7 +91,7 @@ we can control how well we trust the predictions f_i.
 
 function predict_next_fft(seq, n_pred)
     if isempty(seq)
-        return 0.5 .* ones(length(n_pred))
+        return 0.5 .* ones(n_pred)
     end
     N = length(seq)
     # We want to have a float vector
@@ -115,7 +115,7 @@ function predict_next_fft(seq, n_pred)
     latent_f = inv_fft(fft_seq, Vector{Float64}(0:length(seq)-1), q)
 
 
-    latent_f_predict = inv_fft(fft_seq,Vector{Float64}(0:length(seq)+n_pred-1),q )
+    latent_f_predict = inv_fft(fft_seq,Vector{Float64}(length(seq):length(seq)+n_pred-1),q )
     # Now lets define the model
     chn = sample(fft_mdl(Vector{Bool}(seq),latent_f), PG(20), 5000)
     scale = mean(chn[:scale][1000:end]) # Discard burnin samples
@@ -176,8 +176,9 @@ We use https://dsp.stackexchange.com/questions/534/how-to-get-coefficients-for-s
 """
 
 function predict_next_gp(seq, n_pred)
+
     if isempty(seq)
-        return 0.5 .* ones(length(n_pred))
+        return 0.5 .* ones(n_pred)
     end
 
     N = length(seq)
@@ -244,7 +245,7 @@ vect = [0,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
 
 
 
-plot(predict_next_gp(vect,20))
+plot(predict_next_gp([],20))
 scatter!(vect)
 
 
